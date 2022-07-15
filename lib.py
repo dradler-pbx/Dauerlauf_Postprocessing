@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import csv
+import pickle
 
 
 def update_data(logfile_folder: str, logfile_def: str):
@@ -50,3 +51,15 @@ def read_logfile_header_def(logfile_def: str):
         reader = csv.reader(file)
         header_dict = {rows[0]: rows[1] for rows in reader}
     return header_dict
+
+
+def data_to_pickle(data: dict, filename: str):
+    with open(filename, 'wb') as file:
+        pickle.dump(data, file, protocol=pickle.HIGHEST_PROTOCOL)
+    return True
+
+
+def read_data_from_pickle(filename: str):
+    with open(filename, 'rb') as file:
+        data = pickle.load(file)
+    return data
