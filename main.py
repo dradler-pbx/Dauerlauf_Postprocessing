@@ -10,15 +10,19 @@ if __name__ == '__main__':
     logfile_folder = './logfiles'
     logfile_def = 'logfile_definition.csv'
     logfile_device_folders = os.listdir(logfile_folder)
+    pressure_bounds = {
+        'TS1': {'lp': [2.8, 3.2], 'hp': [14.5, 15.5]},
+        'TS2': {'lp': [3.7, 4.1], 'hp': [12.5, 13.5]}
+    }
 
     while True:
         print('-------------------------------------------------------------------------------------')
         print('Data postprocessing Dauerlauf')
         print('The follwoing commands are available:')
-        print('analysis:\t\t\tGet an output of a short analysis for the devices in the data')
-        print('update:\t\t\t\tUpdate the logfiles (e.g. new CSV files added to the logfile folders')
+        print('analysis:\t\tGet an output of a short analysis for the devices in the data')
+        print('update:\t\t\tUpdate the logfiles (e.g. new CSV files added to the logfile folders')
         print('export:\t\t\tExport the data as one CSV per device with clear header')
-        print('exit:\t\t\t\tExit the application.')
+        print('exit:\t\t\tExit the application.')
         user_input = input('What should I do?')
 
         if user_input == 'exit':
@@ -42,7 +46,16 @@ if __name__ == '__main__':
                 print('Update cancelled!')
 
         if user_input == 'analysis':
-            continue
+            # load data if not yet loaded
+            if 'data' not in locals():
+                # load the data.pickle
+                if os.path.exists('data.pickle'):
+                    data = lib.read_data_from_pickle('data.pickle')
+                else:
+                    print('No file data.pickle found. Please update data!')
+                    continue
+            lib.run_short_analysis(data, pressure_bounds)
+            input('Press key to continue...')
 
         if user_input == 'export':
             # load data if not yet loaded

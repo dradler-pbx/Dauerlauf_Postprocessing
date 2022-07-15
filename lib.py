@@ -3,12 +3,13 @@ import numpy as np
 import os
 import csv
 import pickle
+import datetime
 
 
 def update_data(logfile_folder: str, logfile_def: str):
 
     # read the files in the filepath
-    filelist = os.listdir(logfile_folder)
+    filelist = sorted(os.listdir(logfile_folder))
     dataframe_list = []
 
     # loop through the files in the folder and append them as DataFrames to the list
@@ -63,3 +64,47 @@ def read_data_from_pickle(filename: str):
     with open(filename, 'rb') as file:
         data = pickle.load(file)
     return data
+
+
+def run_short_analysis(data: dict, pressure_bounds: dict):
+    resultlist = []
+    for dev in data:
+        resultlist.append(_calc_compressor_runtime(data[dev], pressure_bounds[dev]))
+
+    df = pd.DataFrame(resultlist)
+    df.index = data.keys()
+    df = df.transpose()
+    print(df)
+
+def _calc_compressor_runtime(data, pressure_bounds: dict):
+    result_dict = {}
+    # pressure_bounds = {
+    #     'TS1': {'lp': [2.8, 3.2], 'hp': [14.5, 15.5]},
+    #     'TS2': {'lp': [3.7, 4.1], 'hp': [12.5, 13.5]}
+    # }
+    # calulate new column with timedelta
+    data['timedelta'] = data['timestamp_UNIXms'].diff()
+
+    # get data, where the compressor is running
+    data = data[data['cpr_CAN_speed'] > 500]
+
+    # exclude data with timestamp difference of more than 1s (e.g. non-consecutive logifles)
+    data = data[data['timedelta'] <= datetime.timedelta(seconds=1)]
+
+    # get total runtime
+    total_runtime = data['timedelta'].sum()
+    result_dict['total_runtime_hours'] = total_runtime.total_seconds()/3600
+
+    # exclude data, where the pressure bounds are not met
+    # low pressure
+    data = data[data['cpr_p_i_r'] > pressure_bounds['lp'][0]]
+    data = data[data['cpr_p_i_r'] < pressure_bounds['lp'][1]]
+    # high pressure
+    data = data[data['cond_p_o_r'] > pressure_bounds['hp'][0]]
+    data = data[data['cond_p_o_r'] < pressure_bounds['hp'][1]]
+
+    # get runtime within bounds
+    rutime_bounds = data['timedelta'].sum()
+    result_dict['runtime_within_bounds_hours'] = rutime_bounds.total_seconds()/3600
+
+    return result_dict
