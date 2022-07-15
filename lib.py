@@ -1,25 +1,28 @@
 import pandas as pd
-import numpy as np
 import os
 import csv
 import pickle
 import datetime
+from tqdm import tqdm
 
 
-def update_data(logfile_folder: str, logfile_def: str):
+def update_data(logfile_folder: str, logfile_def: str, compression_factor: int):
 
     # read the files in the filepath
     filelist = sorted(os.listdir(logfile_folder))
     dataframe_list = []
 
     # loop through the files in the folder and append them as DataFrames to the list
-    for file in filelist:
+    for file in tqdm(filelist):
         filepath = '/'.join([logfile_folder, file])
         data = pd.read_csv(filepath, sep=';')
         dataframe_list.append(data)
 
     # create a single DataFrame from the list
     data = pd.concat(dataframe_list, axis=0, ignore_index=True)
+
+    # only take every n entry
+    data = data.iloc[::compression_factor, :]
 
     # exchange the header with clear name header
     data.columns = exchange_header(file_header=data.columns, logfile_def=logfile_def)
@@ -95,6 +98,16 @@ def _calc_compressor_runtime(data, pressure_bounds: dict):
     total_runtime = data['timedelta'].sum()
     result_dict['total_runtime_hours'] = total_runtime.total_seconds()/3600
 
+    # exclude data, where the extended pressure bounds are not met
+    # low pressure
+    data = data[data['cpr_p_i_r'] > pressure_bounds['lp'][0]-0.1]
+    data = data[data['cpr_p_i_r'] < pressure_bounds['lp'][1]+0.1]
+    # high pressure
+    data = data[data['cond_p_o_r'] > pressure_bounds['hp'][0]-0.3]
+    data = data[data['cond_p_o_r'] < pressure_bounds['hp'][1]+0.3]
+    runtime_extended_bounds = data['timedelta'].sum()
+    result_dict['runtime_within_extended_bounds_hours'] = runtime_extended_bounds.total_seconds()/3600
+
     # exclude data, where the pressure bounds are not met
     # low pressure
     data = data[data['cpr_p_i_r'] > pressure_bounds['lp'][0]]
@@ -104,7 +117,10 @@ def _calc_compressor_runtime(data, pressure_bounds: dict):
     data = data[data['cond_p_o_r'] < pressure_bounds['hp'][1]]
 
     # get runtime within bounds
-    rutime_bounds = data['timedelta'].sum()
-    result_dict['runtime_within_bounds_hours'] = rutime_bounds.total_seconds()/3600
+    runtime_bounds = data['timedelta'].sum()
+    result_dict['runtime_within_bounds_hours'] = runtime_bounds.total_seconds()/3600
+
+    result_dict['runtime_share_in_extended_bounds'] = runtime_extended_bounds/total_runtime
+    result_dict['runtime_share_in_bounds'] = runtime_bounds/total_runtime
 
     return result_dict

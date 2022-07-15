@@ -7,7 +7,7 @@ import time
 if __name__ == '__main__':
 
     # folders and files for initialization
-    logfile_folder = './logfiles'
+    logfile_folder = r'C:\Users\dominik\Documents\logfiles'
     logfile_def = 'logfile_definition.csv'
     logfile_device_folders = os.listdir(logfile_folder)
     pressure_bounds = {
@@ -31,11 +31,13 @@ if __name__ == '__main__':
         if user_input == 'update':
             user_input = input('Found {} devices. Do you want to update them? [y]/n'.format(len(logfile_device_folders)))
             if user_input != 'n':
+                compression_factor = input('By which factor shall the data be reduced?')
                 data = {}
                 # read the files per device and store it in a dictionary
                 for device in logfile_device_folders:
+                    print('Updating {}...'.format(device))
                     logfile_folder_path = '/'.join([logfile_folder, device])
-                    data_dev = lib.update_data(logfile_folder_path, logfile_def)
+                    data_dev = lib.update_data(logfile_folder_path, logfile_def, int(compression_factor))
                     data[device] = data_dev
 
                 # save the data dictionary for later use
@@ -55,7 +57,7 @@ if __name__ == '__main__':
                     print('No file data.pickle found. Please update data!')
                     continue
             lib.run_short_analysis(data, pressure_bounds)
-            input('Press key to continue...')
+            input('\nPress key to continue...')
 
         if user_input == 'export':
             # load data if not yet loaded
