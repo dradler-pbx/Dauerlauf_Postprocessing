@@ -4,6 +4,7 @@ import csv
 import pickle
 import datetime
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 
 def update_data(logfile_folder: str, logfile_def: str, compression_factor: int):
@@ -78,6 +79,8 @@ def run_short_analysis(data: dict, pressure_bounds: dict):
     df.index = data.keys()
     df = df.transpose()
     print(df)
+    _plot_discharge_temp(data)
+
 
 def _calc_compressor_runtime(data, pressure_bounds: dict):
     result_dict = {}
@@ -124,3 +127,12 @@ def _calc_compressor_runtime(data, pressure_bounds: dict):
     result_dict['runtime_share_in_bounds'] = runtime_bounds/total_runtime
 
     return result_dict
+
+
+def _plot_discharge_temp(data):
+    for dev in data:
+        df = data[dev]
+        df = df[df['cpr_T_o_r'] < 1300]
+        plt.plot(df['timestamp_UNIXms'], df['cpr_T_o_r'])
+        plt.title(dev+' discharge temperature')
+        plt.show()
