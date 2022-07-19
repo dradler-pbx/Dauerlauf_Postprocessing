@@ -14,6 +14,7 @@ if __name__ == '__main__':
         'TS1': {'lp': [2.8, 3.2], 'hp': [14.5, 15.5]},
         'TS2': {'lp': [3.7, 4.1], 'hp': [12.5, 13.5]}
     }
+    target_runtime = 300
 
     while True:
         print('-------------------------------------------------------------------------------------')
@@ -56,10 +57,13 @@ if __name__ == '__main__':
                 else:
                     print('No file data.pickle found. Please update data!')
                     continue
-            lib.run_short_analysis(data, pressure_bounds)
+            lib.run_short_analysis(data, pressure_bounds, target_runtime)
             input('\nPress key to continue...')
 
         if user_input == 'export':
+            compression_factor = input('By which factor shall the data be reduced?')
+            compression_factor = int(compression_factor)
+
             # load data if not yet loaded
             if 'data' not in locals():
                 # load the data.pickle
@@ -70,8 +74,7 @@ if __name__ == '__main__':
                     continue
 
             for dev in data:
-                df = data[dev]
-                df.to_csv(dev+'.csv')
+                lib.export_csv(data, compression_factor)
             print('CSV files exported.')
 
         time.sleep(1)
