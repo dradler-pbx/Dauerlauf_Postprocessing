@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import os
 import csv
 import pickle
@@ -33,6 +34,9 @@ def update_data(logfile_folder: str, logfile_def: str, compression_factor: int):
 
     # replace 'T' and 'F' with True and False
     data.replace({'T': True, 'F': False}, inplace=True)
+
+    # replace 1337.0 values with np.nan
+    data.replace(1337.0, np.nan, inplace=True)
 
     return data
 
