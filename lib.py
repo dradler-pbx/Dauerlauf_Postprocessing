@@ -34,9 +34,6 @@ def update_data(logfile_folder: str, logfile_def: str, compression_factor: int):
     # replace 'T' and 'F' with True and False
     data.replace({'T': True, 'F': False}, inplace=True)
 
-    # aggregate by 10 values in mean
-    # data = data.groupby(np.arange(len(data)//10).mean())
-
     return data
 
 
@@ -85,7 +82,7 @@ def run_short_analysis(data: dict, pressure_bounds: dict, target_runtime: float)
 def _calc_compressor_runtime(data, pressure_bounds: dict, target_runtime: float):
     result_dict = {}
 
-    # calulate new column with timedelta
+    # calculate new column with timedelta
     data['timedelta'] = data['timestamp_UNIXms'].diff()
 
     # get the first and last timestamp
@@ -94,11 +91,8 @@ def _calc_compressor_runtime(data, pressure_bounds: dict, target_runtime: float)
     last_timestamp = data['timestamp_UNIXms'].iloc[-1]
     result_dict['last_timestamp'] = last_timestamp
 
-    # get data, where the compressor is running
-    data = data[data['cpr_CAN_speed'] > 500]
-
-    # exclude data with timestamp difference of more than 1s (e.g. non-consecutive logifles)
-    data = data[data['timedelta'] <= datetime.timedelta(seconds=1)]
+    # get data, where the compressor is running and was running the timestamp before as well
+    data = data[(data['cpr_CAN_speed'] > 500) & (data['cpr_CAN_speed'].shift(-1) > 500)]
 
     # get total runtime
     total_runtime = data['timedelta'].sum()
@@ -132,10 +126,8 @@ def _calc_compressor_runtime(data, pressure_bounds: dict, target_runtime: float)
 
     # calculate remaining runtime
     target_runtime_delta = datetime.timedelta(hours=target_runtime)
-    remaining_runtime_delta = target_runtime_delta - runtime_bounds
-    target_timestamp = last_timestamp + remaining_runtime_delta
-
-    result_dict['Reaching {} hours'.format(target_runtime)] = target_timestamp
+    result_dict['Reaching {} hours in bounds'.format(target_runtime)] = last_timestamp + target_runtime_delta - runtime_bounds
+    result_dict['Reaching {} hours total runtime'.format(target_runtime)] = last_timestamp + target_runtime_delta - total_runtime
 
     return result_dict
 
